@@ -56,6 +56,10 @@ public class ControlMessageReader {
                 return parseUhidDestroy();
             case ControlMessage.TYPE_START_APP:
                 return parseStartApp();
+            case ControlMessage.TYPE_CHANGE_STREAM_PARAMETERS:
+                return parseChangeStreamParameters();
+            case ControlMessage.TYPE_PUSH_FILE:
+                return parsePushFile();
             default:
                 throw new ControlProtocolException("Unknown event type: " + type);
         }
@@ -112,8 +116,9 @@ public class ControlMessageReader {
 
     private ControlMessage parseInjectScrollEvent() throws IOException {
         Position position = parsePosition();
-        float hScroll = Binary.i16FixedPointToFloat(dis.readShort());
-        float vScroll = Binary.i16FixedPointToFloat(dis.readShort());
+        // Binary.i16FixedPointToFloat() decodes values assuming the full range is [-1, 1], but the actual range is [-16, 16].
+        float hScroll = Binary.i16FixedPointToFloat(dis.readShort()) * 16;
+        float vScroll = Binary.i16FixedPointToFloat(dis.readShort()) * 16;
         int buttons = dis.readInt();
         return ControlMessage.createInjectScrollEvent(position, hScroll, vScroll, buttons);
     }
@@ -163,6 +168,56 @@ public class ControlMessageReader {
     private ControlMessage parseStartApp() throws IOException {
         String name = parseString(1);
         return ControlMessage.createStartApp(name);
+    }
+
+    private ControlMessage parseChangeStreamParameters() throws IOException {
+        // Read VideoSettings directly (no length prefix)
+        // Format: bitrate(4) + maxFps(4) + iFrameInterval(1) + width(2) + height(2) +
+        //         left(2) + top(2) + right(2) + bottom(2) + sendFrameMeta(1) +
+        //         lockedVideoOrientation(1) + displayId(4) + codecOptionsLength(4) +
+        //         codecOptions(N) + encoderNameLength(4) + encoderName(N)
+
+        int bitRate = dis.readInt();
+        int maxFps = dis.readInt();
+        int iFrameInterval = dis.readByte();
+        int boundsWidth = dis.readShort();
+        int boundsHeight = dis.readShort();
+        int cropLeft = dis.readShort();
+        int cropTop = dis.readShort();
+        int cropRight = dis.readShort();
+        int cropBottom = dis.readShort();
+        boolean sendFrameMeta = dis.readByte() != 0;
+        int lockedVideoOrientation = dis.readByte();
+        int displayId = dis.readInt();
+
+        String codecOptions = null;
+        int codecOptionsLength = dis.readInt();
+        if (codecOptionsLength > 0) {
+            byte[] codecOptionsBytes = new byte[codecOptionsLength];
+            dis.readFully(codecOptionsBytes);
+            codecOptions = new String(codecOptionsBytes, StandardCharsets.UTF_8);
+        }
+
+        String encoderName = null;
+        int encoderNameLength = dis.readInt();
+        if (encoderNameLength > 0) {
+            byte[] encoderNameBytes = new byte[encoderNameLength];
+            dis.readFully(encoderNameBytes);
+            encoderName = new String(encoderNameBytes, StandardCharsets.UTF_8);
+        }
+
+        return ControlMessage.createChangeStreamParameters(
+            bitRate, maxFps, iFrameInterval,
+            boundsWidth, boundsHeight,
+            cropLeft, cropTop, cropRight, cropBottom,
+            sendFrameMeta, lockedVideoOrientation, displayId,
+            codecOptions, encoderName
+        );
+    }
+
+    private ControlMessage parsePushFile() throws IOException {
+        byte[] data = parseByteArray(4);
+        return ControlMessage.createFilePush(data);
     }
 
     private Position parsePosition() throws IOException {

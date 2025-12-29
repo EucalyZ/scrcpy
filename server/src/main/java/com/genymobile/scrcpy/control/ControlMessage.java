@@ -1,6 +1,7 @@
 package com.genymobile.scrcpy.control;
 
 import com.genymobile.scrcpy.device.Position;
+import com.genymobile.scrcpy.VideoSettings;
 
 /**
  * Union of all supported event types, identified by their {@code type}.
@@ -25,6 +26,8 @@ public final class ControlMessage {
     public static final int TYPE_OPEN_HARD_KEYBOARD_SETTINGS = 15;
     public static final int TYPE_START_APP = 16;
     public static final int TYPE_RESET_VIDEO = 17;
+    public static final int TYPE_CHANGE_STREAM_PARAMETERS = 101;  // ws-scrcpy custom
+    public static final int TYPE_PUSH_FILE = 102;  // ws-scrcpy custom
 
     public static final long SEQUENCE_INVALID = 0;
 
@@ -53,6 +56,8 @@ public final class ControlMessage {
     private boolean on;
     private int vendorId;
     private int productId;
+    private VideoSettings videoSettings;
+    private byte[] fileData;
 
     private ControlMessage() {
     }
@@ -166,6 +171,38 @@ public final class ControlMessage {
         return msg;
     }
 
+    public static ControlMessage createChangeStreamParameters(byte[] bytes) {
+        ControlMessage msg = new ControlMessage();
+        msg.type = TYPE_CHANGE_STREAM_PARAMETERS;
+        msg.videoSettings = VideoSettings.fromByteArray(bytes);
+        return msg;
+    }
+
+    public static ControlMessage createChangeStreamParameters(
+            int bitRate, int maxFps, int iFrameInterval,
+            int boundsWidth, int boundsHeight,
+            int cropLeft, int cropTop, int cropRight, int cropBottom,
+            boolean sendFrameMeta, int lockedVideoOrientation, int displayId,
+            String codecOptions, String encoderName) {
+        ControlMessage msg = new ControlMessage();
+        msg.type = TYPE_CHANGE_STREAM_PARAMETERS;
+        msg.videoSettings = new VideoSettings(
+            bitRate, maxFps, iFrameInterval,
+            boundsWidth, boundsHeight,
+            cropLeft, cropTop, cropRight, cropBottom,
+            sendFrameMeta, lockedVideoOrientation, displayId,
+            codecOptions, encoderName
+        );
+        return msg;
+    }
+
+    public static ControlMessage createFilePush(byte[] data) {
+        ControlMessage msg = new ControlMessage();
+        msg.type = TYPE_PUSH_FILE;
+        msg.fileData = data;
+        return msg;
+    }
+
     public int getType() {
         return type;
     }
@@ -248,5 +285,13 @@ public final class ControlMessage {
 
     public int getProductId() {
         return productId;
+    }
+
+    public VideoSettings getVideoSettings() {
+        return videoSettings;
+    }
+
+    public byte[] getFileData() {
+        return fileData;
     }
 }

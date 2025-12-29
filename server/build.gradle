@@ -1,15 +1,15 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace 'com.genymobile.scrcpy'
-    compileSdk 35
+    namespace = 'com.genymobile.scrcpy'
+    compileSdk 36
     defaultConfig {
-        applicationId "com.genymobile.scrcpy"
+        applicationId = "com.genymobile.scrcpy"
         minSdkVersion 21
-        targetSdkVersion 35
-        versionCode 30100
-        versionName "3.1"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        targetSdkVersion 36
+        versionCode 30304
+        versionName "3.3.4"
+        testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         release {
@@ -18,12 +18,18 @@ android {
         }
     }
     buildFeatures {
-        buildConfig true
-        aidl true
+        buildConfig = true
+        aidl = true
+    }
+    lint {
+        disable 'UseRequiresApi'
     }
 }
 
 dependencies {
+    implementation 'org.java-websocket:Java-WebSocket:1.5.4'
+    implementation 'org.slf4j:slf4j-api:2.0.9'
+    implementation 'uk.uuid.slf4j:slf4j-android:2.0.9-0'
     testImplementation 'junit:junit:4.13.2'
 }
 

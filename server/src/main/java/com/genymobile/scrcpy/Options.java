@@ -12,6 +12,7 @@ import com.genymobile.scrcpy.video.CameraAspectRatio;
 import com.genymobile.scrcpy.video.CameraFacing;
 import com.genymobile.scrcpy.video.VideoCodec;
 import com.genymobile.scrcpy.video.VideoSource;
+import com.genymobile.scrcpy.wrappers.WindowManager;
 
 import android.graphics.Rect;
 import android.util.Pair;
@@ -48,6 +49,7 @@ public class Options {
     private boolean showTouches;
     private boolean stayAwake;
     private int screenOffTimeout = -1;
+    private int displayImePolicy = -1;
     private List<CodecOption> videoCodecOptions;
     private List<CodecOption> audioCodecOptions;
 
@@ -77,6 +79,10 @@ public class Options {
     private boolean sendFrameMeta = true; // send PTS so that the client may record properly
     private boolean sendDummyByte = true; // write a byte on start to detect connection issues
     private boolean sendCodecMeta = true; // write the codec metadata before the stream
+
+    // WebSocket configuration
+    private int portNumber = 0;  // 0 means disabled, use socket mode; >0 means WebSocket mode
+    private boolean listenOnAllInterfaces = false;
 
     public Ln.Level getLogLevel() {
         return logLevel;
@@ -186,6 +192,10 @@ public class Options {
         return screenOffTimeout;
     }
 
+    public int getDisplayImePolicy() {
+        return displayImePolicy;
+    }
+
     public List<CodecOption> getVideoCodecOptions() {
         return videoCodecOptions;
     }
@@ -280,6 +290,14 @@ public class Options {
 
     public boolean getSendCodecMeta() {
         return sendCodecMeta;
+    }
+
+    public int getPortNumber() {
+        return portNumber;
+    }
+
+    public boolean getListenOnAllInterfaces() {
+        return listenOnAllInterfaces;
     }
 
     @SuppressWarnings("MethodLength")
@@ -482,6 +500,9 @@ public class Options {
                     options.captureOrientationLock = pair.first;
                     options.captureOrientation = pair.second;
                     break;
+                case "display_ime_policy":
+                    options.displayImePolicy = parseDisplayImePolicy(value);
+                    break;
                 case "send_device_meta":
                     options.sendDeviceMeta = Boolean.parseBoolean(value);
                     break;
@@ -502,6 +523,15 @@ public class Options {
                         options.sendDummyByte = false;
                         options.sendCodecMeta = false;
                     }
+                    break;
+                case "port_number":
+                    options.portNumber = Integer.parseInt(value);
+                    if (options.portNumber <= 0 || options.portNumber > 65535) {
+                        throw new IllegalArgumentException("Invalid port number: " + options.portNumber);
+                    }
+                    break;
+                case "listen_on_all_interfaces":
+                    options.listenOnAllInterfaces = Boolean.parseBoolean(value);
                     break;
                 default:
                     Ln.w("Unknown server option: " + key);
@@ -625,5 +655,18 @@ public class Options {
         }
 
         return Pair.create(lock, Orientation.getByName(value));
+    }
+
+    private static int parseDisplayImePolicy(String value) {
+        switch (value) {
+            case "local":
+                return WindowManager.DISPLAY_IME_POLICY_LOCAL;
+            case "fallback":
+                return WindowManager.DISPLAY_IME_POLICY_FALLBACK_DISPLAY;
+            case "hide":
+                return WindowManager.DISPLAY_IME_POLICY_HIDE;
+            default:
+                throw new IllegalArgumentException("Invalid display IME policy: " + value);
+        }
     }
 }
