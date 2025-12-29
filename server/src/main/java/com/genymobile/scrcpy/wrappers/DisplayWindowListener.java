@@ -3,9 +3,12 @@ package com.genymobile.scrcpy.wrappers;
 import com.genymobile.scrcpy.util.Ln;
 
 import android.content.res.Configuration;
+import android.graphics.Rect;
 import android.os.Parcel;
 import android.os.RemoteException;
 import android.view.IDisplayWindowListener;
+
+import java.util.List;
 
 public class DisplayWindowListener extends IDisplayWindowListener.Stub {
     @Override
@@ -21,6 +24,21 @@ public class DisplayWindowListener extends IDisplayWindowListener.Stub {
     @Override
     public void onDisplayRemoved(int displayId) {
         // empty default implementation
+    }
+
+    @Override
+    public void onKeepClearAreasChanged(int displayId, List<Rect> restricted, List<Rect> unrestricted) {
+        // empty default implementation (Android API 36+)
+    }
+
+    @Override
+    public void onFixedRotationFinished(int displayId) {
+        // empty default implementation (Android API 36+)
+    }
+
+    @Override
+    public void onFixedRotationStarted(int displayId, int rotation) {
+        // empty default implementation (Android API 36+)
     }
 
     @Override
